@@ -6,7 +6,7 @@ A revolutionary blockchain-powered jury decision system that enables secure, pri
 
 Experience the future of legal technology:
 
-**🌐 Website**: [https://digital-court.vercel.app/](https://digital-court.vercel.app/)
+**🌐 Website**: [https://digital-court-fhe.vercel.app/](https://digital-court-fhe.vercel.app/)
 
 ## 🔗 Smart Contract Details
 
