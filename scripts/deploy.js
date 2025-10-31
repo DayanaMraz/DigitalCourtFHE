@@ -1,135 +1,62 @@
-const hre = require("hardhat");
-const fs = require("fs");
-const path = require("path");
+const { ethers } = require("hardhat");
 
 async function main() {
-  console.log("=".repeat(60));
-  console.log("Digital Court System - Deployment Script");
-  console.log("=".repeat(60));
+  console.log("🏛️  Deploying Digital Court System with FHEVM...\n");
 
-  const [deployer] = await hre.ethers.getSigners();
-  const network = hre.network.name;
+  // Get the deployer account
+  const [deployer] = await ethers.getSigners();
+  console.log("📋 Deploying with account:", deployer.address);
+  console.log("💰 Account balance:", ethers.formatEther(await deployer.provider.getBalance(deployer.address)), "ETH\n");
 
-  console.log(`\nDeployment Information:`);
-  console.log(`- Network: ${network}`);
-  console.log(`- Deployer Address: ${deployer.address}`);
-
-  const balance = await hre.ethers.provider.getBalance(deployer.address);
-  console.log(`- Deployer Balance: ${hre.ethers.formatEther(balance)} ETH`);
-
-  // Verify sufficient balance
-  if (balance < hre.ethers.parseEther("0.01")) {
-    console.warn("\n⚠ Warning: Low balance. Deployment may fail.");
-  }
-
-  console.log("\n" + "-".repeat(60));
-  console.log("Starting Contract Deployment...");
-  console.log("-".repeat(60));
-
-  // Deploy DigitalCourt contract
-  console.log("\n1. Deploying DigitalCourt contract...");
-  const DigitalCourt = await hre.ethers.getContractFactory("DigitalCourt");
-
-  console.log("   - Estimating deployment gas...");
+  // Deploy the DigitalCourt contract
+  console.log("⚖️  Deploying DigitalCourt contract...");
+  const DigitalCourt = await ethers.getContractFactory("DigitalCourt");
   const digitalCourt = await DigitalCourt.deploy();
-
-  console.log("   - Transaction submitted. Waiting for confirmation...");
+  
   await digitalCourt.waitForDeployment();
-
   const contractAddress = await digitalCourt.getAddress();
-  console.log(`   ✓ DigitalCourt deployed to: ${contractAddress}`);
 
-  // Get deployment transaction details
-  const deployTx = digitalCourt.deploymentTransaction();
-  console.log(`   - Transaction Hash: ${deployTx.hash}`);
-  console.log(`   - Block Number: ${deployTx.blockNumber}`);
-
-  if (deployTx.gasPrice) {
-    console.log(`   - Gas Price: ${hre.ethers.formatUnits(deployTx.gasPrice, "gwei")} gwei`);
+  console.log("✅ DigitalCourt deployed successfully!");
+  console.log("📍 Contract Address:", contractAddress);
+  console.log("🔗 Transaction Hash:", digitalCourt.deploymentTransaction().hash);
+  
+  // Get network information
+  const network = await ethers.provider.getNetwork();
+  console.log("🌐 Network:", network.name, "(" + network.chainId + ")");
+  
+  if (network.chainId === 11155111n) { // Sepolia
+    console.log("🔍 Etherscan:", `https://sepolia.etherscan.io/address/${contractAddress}`);
+  } else if (network.chainId === 8009n) { // Zama Devnet
+    console.log("🔍 Zama Explorer:", `https://main.explorer.zama.ai/address/${contractAddress}`);
   }
 
-  // Get contract constants
-  console.log("\n2. Verifying Contract Configuration...");
-  const votingDuration = await digitalCourt.VOTING_DURATION();
-  const minJurors = await digitalCourt.MIN_JURORS();
-  const maxJurors = await digitalCourt.MAX_JURORS();
-
-  console.log(`   - Voting Duration: ${votingDuration.toString()} seconds (${Number(votingDuration) / 86400} days)`);
-  console.log(`   - Minimum Jurors: ${minJurors.toString()}`);
-  console.log(`   - Maximum Jurors: ${maxJurors.toString()}`);
-  console.log(`   - Owner: ${await digitalCourt.owner()}`);
-
-  // Save deployment information
-  console.log("\n3. Saving Deployment Information...");
-  const deploymentInfo = {
-    network: network,
-    chainId: (await hre.ethers.provider.getNetwork()).chainId.toString(),
-    contractName: "DigitalCourt",
-    contractAddress: contractAddress,
-    deployer: deployer.address,
-    deploymentTransaction: deployTx.hash,
-    blockNumber: deployTx.blockNumber,
-    timestamp: new Date().toISOString(),
-    votingDuration: votingDuration.toString(),
-    minJurors: minJurors.toString(),
-    maxJurors: maxJurors.toString(),
-    etherscanUrl: network === "sepolia"
-      ? `https://sepolia.etherscan.io/address/${contractAddress}`
-      : `https://etherscan.io/address/${contractAddress}`
-  };
-
-  const deploymentsDir = path.join(__dirname, "..", "deployments");
-  if (!fs.existsSync(deploymentsDir)) {
-    fs.mkdirSync(deploymentsDir, { recursive: true });
+  // Initialize the contract with some sample jurors (optional)
+  console.log("\n⚖️  Setting up initial configuration...");
+  
+  try {
+    // Certify the deployer as the first juror for testing
+    const tx1 = await digitalCourt.certifyJuror(deployer.address);
+    await tx1.wait();
+    console.log("✅ Deployer certified as juror");
+    
+    console.log("\n🎉 Deployment completed successfully!");
+    console.log("📋 Summary:");
+    console.log("   - Contract: DigitalCourt");
+    console.log("   - Address:", contractAddress);
+    console.log("   - Network:", network.name);
+    console.log("   - Gas Used: Estimation varies by network");
+    console.log("   - Features: FHE Privacy Voting, Case Management, Jury System");
+    
+  } catch (error) {
+    console.log("⚠️  Initial setup failed:", error.message);
+    console.log("   Contract deployed successfully but initialization failed.");
+    console.log("   You can manually initialize it later.");
   }
-
-  const deploymentFile = path.join(deploymentsDir, `${network}-deployment.json`);
-  fs.writeFileSync(deploymentFile, JSON.stringify(deploymentInfo, null, 2));
-  console.log(`   ✓ Deployment info saved to: ${deploymentFile}`);
-
-  // Save ABI
-  const artifactPath = path.join(__dirname, "..", "artifacts", "contracts", "DigitalCourt.sol", "DigitalCourt.json");
-  if (fs.existsSync(artifactPath)) {
-    const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
-    const abiFile = path.join(deploymentsDir, `${network}-abi.json`);
-    fs.writeFileSync(abiFile, JSON.stringify(artifact.abi, null, 2));
-    console.log(`   ✓ Contract ABI saved to: ${abiFile}`);
-  }
-
-  // Display summary
-  console.log("\n" + "=".repeat(60));
-  console.log("Deployment Summary");
-  console.log("=".repeat(60));
-  console.log(`\nContract Address: ${contractAddress}`);
-  console.log(`Network: ${network}`);
-  console.log(`Deployer: ${deployer.address}`);
-
-  if (network === "sepolia") {
-    console.log(`\nEtherscan URL: ${deploymentInfo.etherscanUrl}`);
-    console.log(`\nNext Steps:`);
-    console.log(`1. Verify the contract on Etherscan:`);
-    console.log(`   npm run hardhat:verify`);
-    console.log(`\n2. Interact with the deployed contract:`);
-    console.log(`   npm run hardhat:interact`);
-  } else {
-    console.log(`\nNote: Contract deployed to local/test network`);
-  }
-
-  console.log("\n" + "=".repeat(60));
-  console.log("Deployment Complete!");
-  console.log("=".repeat(60) + "\n");
-
-  return {
-    contractAddress,
-    deploymentInfo
-  };
 }
 
-// Execute deployment
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("\n❌ Deployment Failed:");
-    console.error(error);
+    console.error("❌ Deployment failed:", error);
     process.exit(1);
   });

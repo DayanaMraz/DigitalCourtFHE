@@ -1,9 +1,10 @@
-require("@nomicfoundation/hardhat-toolbox");
-require("@nomicfoundation/hardhat-verify");
-require("hardhat-gas-reporter");
-require("hardhat-contract-sizer");
-require("solidity-coverage");
-require("dotenv").config();
+require("@nomicfoundation/hardhat-ethers");
+require("@nomicfoundation/hardhat-chai-matchers");
+require("@fhevm/hardhat-plugin");
+require("dotenv/config");
+
+const SEPOLIA_PRIVATE_KEY = process.env.SEPOLIA_PRIVATE_KEY || "";
+const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://sepolia.infura.io/v3/";
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -14,7 +15,8 @@ module.exports = {
         enabled: true,
         runs: 200,
       },
-      viaIR: true,
+      evmVersion: "cancun", // Required for FHEVM
+      viaIR: true, // Required for FHEVM compilation
     },
   },
   networks: {
@@ -26,28 +28,16 @@ module.exports = {
       chainId: 31337,
     },
     sepolia: {
-      url: process.env.SEPOLIA_RPC_URL || "https://eth-sepolia.g.alchemy.com/v2/YOUR-API-KEY",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      url: SEPOLIA_RPC_URL,
+      accounts: SEPOLIA_PRIVATE_KEY ? [SEPOLIA_PRIVATE_KEY] : [],
       chainId: 11155111,
     },
-  },
-  etherscan: {
-    apiKey: {
-      sepolia: process.env.ETHERSCAN_API_KEY || "",
+    // Zama Devnet for FHEVM testing
+    zama: {
+      url: "https://devnet.zama.ai",
+      accounts: SEPOLIA_PRIVATE_KEY ? [SEPOLIA_PRIVATE_KEY] : [],
+      chainId: 8009,
     },
-  },
-  gasReporter: {
-    enabled: process.env.REPORT_GAS === "true",
-    currency: "USD",
-    outputFile: "gas-report.txt",
-    noColors: true,
-    coinmarketcap: process.env.COINMARKETCAP_API_KEY || "",
-  },
-  contractSizer: {
-    alphaSort: true,
-    disambiguatePaths: false,
-    runOnCompile: true,
-    strict: true,
   },
   paths: {
     sources: "./contracts",
@@ -56,6 +46,11 @@ module.exports = {
     artifacts: "./artifacts",
   },
   mocha: {
-    timeout: 40000,
+    timeout: 60000,
+  },
+  // FHEVM specific configuration
+  typechain: {
+    outDir: "types",
+    target: "ethers-v6",
   },
 };
