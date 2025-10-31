@@ -1,0 +1,23 @@
+# Directories
+node_modules/
+artifacts/
+cache/
+coverage/
+dist/
+build/
+typechain/
+typechain-types/
+
+# Test files
+test/
+*.test.sol
+mocks/
+
+# Dependencies and libraries
+contracts/MockFHEVM.sol
+contracts/IFHEVM.sol
+contracts/TFHE.sol
+contracts/FHELib.sol
+
+# Build artifacts
+*.json
