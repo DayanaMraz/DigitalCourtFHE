@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+artifacts/
+cache/
+coverage/
+typechain/
+typechain-types/
+
+# Next.js
+.next/
+out/
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+
+# Deployments
+deployments/*.json
+
+# Git
+.git/
+
+# IDE
+.vscode/
+.idea/
